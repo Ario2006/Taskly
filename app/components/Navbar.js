@@ -3,9 +3,39 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { InteractiveHoverButton } from '@/components/magicui/interactive-hover-button'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { LogOut } from 'lucide-react'
 
 function Navbar() {
+  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [user, setUser] = useState(null)
+  
+  // Check for logged in user
+  useEffect(() => {
+    const checkUser = () => {
+      const currentUser = localStorage.getItem('taskly_current_user')
+      if (currentUser) {
+        setUser(JSON.parse(currentUser))
+      } else {
+        setUser(null)
+      }
+    }
+    
+    // Check on mount
+    checkUser()
+    
+    // Listen for storage changes (for when user logs in/out in another tab)
+    window.addEventListener('storage', checkUser)
+    
+    // Check when navigating
+    window.addEventListener('focus', checkUser)
+    
+    return () => {
+      window.removeEventListener('storage', checkUser)
+      window.removeEventListener('focus', checkUser)
+    }
+  }, [])
   
   // Prevent body scroll when menu is open
   useEffect(() => {
@@ -28,25 +58,58 @@ function Navbar() {
     setIsMenuOpen(false)
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('taskly_current_user')
+    setUser(null)
+    closeMenu()
+    router.push('/')
+  }
+
   return (
     <>
       <div className="fixed top-4 left-1/2 transform -translate-x-1/2 w-[90vw] z-50 bg-white/40 backdrop-blur-md border-b border-white/20 rounded-full shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
-          <Link href="/" className="cursor-none flex items-center space-x-4 font-poppins text-xl font-bold text-black transform transition-transform duration-150 hover:scale-110">
+          <Link href={user ? "/dashboard" : "/"} className="cursor-none flex items-center space-x-4 font-poppins text-xl font-bold text-black transform transition-transform duration-150 hover:scale-110">
             <Image src="/logo.svg" alt="Logo" width={28} height={28} />
             <span>Taskly</span>
           </Link>
           
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center">
-            <Link href="/login" className="cursor-none mr-3 px-4 py-2 rounded text-blue-800 hover:text-black transform transition-transform duration-150">
-              Login
-            </Link>
-            <Link href="/signup">
-              <InteractiveHoverButton className="cursor-none border-1 border-black">
-                Get Started
-              </InteractiveHoverButton>
-            </Link>
+            {user ? (
+              // Logged in state
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <Image
+                    src={`https://avatar.vercel.sh/${user.email}`}
+                    alt={user.name}
+                    width={36}
+                    height={36}
+                    className="rounded-full"
+                  />
+                  <span className="text-sm font-medium text-gray-700">{user.name}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
+                  aria-label="Logout"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              // Logged out state
+              <>
+                <Link href="/login" className="cursor-none mr-3 px-4 py-2 rounded text-blue-800 hover:text-black transform transition-transform duration-150">
+                  Login
+                </Link>
+                <Link href="/signup">
+                  <InteractiveHoverButton className="cursor-none border-1 border-black">
+                    Get Started
+                  </InteractiveHoverButton>
+                </Link>
+              </>
+            )}
           </div>
           
           {/* Mobile Hamburger Button */}
@@ -81,21 +144,57 @@ function Navbar() {
           <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-8" />
           
           <nav className="flex flex-col items-center space-y-4">
-            <Link
-              href="/login"
-              onClick={closeMenu}
-              className="text-lg font-medium text-blue-800 hover:text-black py-3 px-6 transition-colors duration-200"
-            >
-              Login
-            </Link>
-            <Link
-              href="/signup"
-              onClick={closeMenu}
-            >
-              <InteractiveHoverButton className="cursor-none border-1 border-black py-3">
-                Get Started
-              </InteractiveHoverButton>
-            </Link>
+            {user ? (
+              // Logged in mobile menu
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <Image
+                    src={`https://avatar.vercel.sh/${user.email}`}
+                    alt={user.name}
+                    width={40}
+                    height={40}
+                    className="rounded-full"
+                  />
+                  <div>
+                    <p className="font-medium text-gray-900">{user.name}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard"
+                  onClick={closeMenu}
+                  className="text-lg font-medium text-gray-700 hover:text-black py-3 px-6 transition-colors duration-200"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-lg font-medium text-red-600 hover:text-red-700 py-3 px-6 transition-colors duration-200"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Logout
+                </button>
+              </>
+            ) : (
+              // Logged out mobile menu
+              <>
+                <Link
+                  href="/login"
+                  onClick={closeMenu}
+                  className="text-lg font-medium text-blue-800 hover:text-black py-3 px-6 transition-colors duration-200"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={closeMenu}
+                >
+                  <InteractiveHoverButton className="cursor-none border-1 border-black py-3">
+                    Get Started
+                  </InteractiveHoverButton>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </div>
