@@ -11,7 +11,7 @@ const poppins = Poppins({
 
 export const metadata = {
   title: 'Taskly',
-  description: 'Your task manager',
+  description: 'Your Project and Tasks Manager',
 }
 
 export default function RootLayout({ children }) {
