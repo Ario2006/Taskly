@@ -4,7 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +17,8 @@ export default function LoginPage() {
   });
   const [isAnimating, setIsAnimating] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleNext = () => {
     setIsAnimating(true);
@@ -26,37 +30,26 @@ export default function LoginPage() {
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
-    setError(""); // Clear error when user types
+    setError("");
   };
 
-  const handleSubmit = () => {
-    // Check credentials from localStorage
-    const users = JSON.parse(localStorage.getItem('taskly_users') || '[]');
-    const user = users.find(u => 
-      u.email.toLowerCase() === formData.email.toLowerCase() && 
-      u.password === formData.password
-    );
-
-    if (user) {
-      // Login successful
-      localStorage.setItem('taskly_current_user', JSON.stringify({
-        id: user.id,
-        name: user.name,
-        email: user.email
-      }));
-      
-      // Redirect to dashboard
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
-    } else {
-      // Login failed
-      setError("Invalid email or password");
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password
+    });
+    setLoading(false);
+    if (signInError) {
+      setError(signInError.message);
       setTimeout(() => {
         setStep(1);
         setFormData({ email: "", password: "" });
       }, 2000);
+      return;
     }
+    router.push("/dashboard");
   };
 
   return (
@@ -76,125 +69,60 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
-
-            <div className={`transition-all duration-300 ${isAnimating ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
-              {/* Step 1: Email/Username */}
-              {step === 1 && (
-                <div className="space-y-8">
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-semibold text-gray-800">Welcome back</h2>
-                    <p className="text-gray-600">Sign in to your Taskly account</p>
-                  </div>
-                  <div className="space-y-6">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="w-full pb-2 text-lg border-b-2 border-gray-300 focus:border-blue-500 outline-none transition-colors bg-transparent"
-                        placeholder="Email or username"
-                        autoFocus
-                      />
-                    </div>
-                    <button
-                      onClick={handleNext}
-                      disabled={!formData.email}
-                      className="flex items-center gap-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                    </div>
-                </div>
-              )}
-
-              {/* Step 2: Password */}
-              {step === 2 && (
-                <div className="space-y-8">
-                  <div className="space-y-2">
-                    <p className="text-gray-600">
-                      Signing in as <span className="text-black font-medium">{formData.email}</span>
-                    </p>
-                  </div>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <input
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
-                          className="w-full pb-2 text-lg border-b-2 border-gray-300 focus:border-blue-500 outline-none transition-colors bg-transparent"
-                          placeholder="Enter your password"
-                          autoFocus
-                        />
-                      </div>
-                      <div className="flex justify-end">
-                        <Link href="/forgot-password" className="text-sm text-blue-500 hover:text-blue-600">
-                          Forgot password?
-                        </Link>
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleNext}
-                      disabled={!formData.password}
-                      className="flex items-center gap-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Logging in */}
-              {step === 3 && (
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h2 className="text-2xl font-semibold text-gray-800">
-                      {error ? "Login failed" : "Signing you in..."}
-                    </h2>
-                    <div className="flex justify-center">
-                      {!error && (
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                      )}
-                      {error && (
-                        <div className="text-red-500">
-                          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {/* Auto-submit after a short delay */}
-                  {!error && setTimeout(() => handleSubmit(), 1500)}
-                </div>
-              )}
-            </div>
-
-            {/* Progress dots - only show for steps 1 and 2 */}
-            {step < 3 && (
-              <div className="flex gap-2 mt-12 justify-center">
-                {[1, 2].map((dot) => (
-                  <div
-                    key={dot}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      dot <= step ? 'bg-gray-800 w-6' : 'bg-gray-300'
-                    }`}
+            {/* Form */}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleSubmit();
+              }}
+              className="space-y-6"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={e => handleInputChange("email", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={formData.password}
+                    onChange={e => handleInputChange("password", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                    placeholder="Enter your password"
                   />
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
-            )}
-
-            {/* Sign up link */}
-            {step < 3 && (
-              <div className="mt-8 text-center">
-                <p className="text-sm text-gray-600">
-                  Don't have an account?{" "}
-                  <Link href="/signup" className="text-blue-500 hover:text-blue-600 font-medium">
-                    Sign up
-                  </Link>
-                </p>
-              </div>
-            )}
+              <button
+                type="submit"
+                className="w-full flex justify-center items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-60"
+                disabled={loading}
+              >
+                Log In
+                {loading && <ChevronRight className="animate-spin" />}
+              </button>
+            </form>
+            <div className="mt-4 text-sm text-gray-600">
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="text-blue-600 hover:underline">Sign up</Link>
+            </div>
           </div>
         </div>
       </div>

@@ -8,22 +8,29 @@ import AddProjectModal from "./components/AddProjectModal";
 import { useProjects } from "@/hooks/useProjects";
 import { calculateProjectStats } from "@/lib/utils";
 import { Plus, Search, Filter } from 'lucide-react';
+import { supabase } from "@/lib/supabaseClient";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const { projects, loading, addProject, updateProject, deleteProject } = useProjects();
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const currentUser = localStorage.getItem('taskly_current_user');
-    if (!currentUser) {
-      router.push('/login');
-    } else {
-      setUser(JSON.parse(currentUser));
-    }
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+      } else {
+        setUser(user);
+      }
+    };
+    checkUser();
   }, [router]);
+
+  const { projects, loading, addProject, updateProject, deleteProject } = useProjects(user);
 
   if (!user || loading) {
     return (
@@ -33,80 +40,85 @@ export default function DashboardPage() {
     );
   }
 
-  const stats = calculateProjectStats(projects);
-
+  // Minimal UI
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Navbar />
-      
       <main className="pt-24 pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
+        <div className="max-w-2xl mx-auto px-4">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Project Overview</h1>
-            <p className="text-gray-600">Manage and track all your projects in one place</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1 tracking-tight">My Projects</h1>
+            <p className="text-gray-500">A minimal, elegant dashboard for your projects</p>
           </div>
-
-          {/* Actions Bar */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-                New Project
-              </button>
-              
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search projects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-              <Filter className="w-5 h-5 text-gray-600" />
-              Filter
-            </button>
+          <div className="flex justify-between items-center mb-8 gap-2 flex-col sm:flex-row">
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              variant="default"
+              size="lg"
+              className="w-full sm:w-auto"
+            >
+              + New Project
+            </Button>
+            <Input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64"
+            />
           </div>
-
-          {/* Projects Table */}
-          <ProjectTable 
-            projects={projects}
-            onUpdate={updateProject}
-            onDelete={deleteProject}
-            searchTerm={searchTerm}
-          />
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Total Projects</h3>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Completed</h3>
-              <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">In Progress</h3>
-              <p className="text-2xl font-bold text-yellow-400">{stats.inProgress}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Stuck</h3>
-              <p className="text-2xl font-bold text-red-500">{stats.stuck}</p>
-            </div>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-x-auto transition-all">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700">Name</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700">Status</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700">Due Date</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700">Priority</th>
+                  <th className="w-16"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="text-center text-gray-400 py-12">No projects found</td>
+                  </tr>
+                ) : (
+                  projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(project => (
+                    <tr
+                      key={project.id}
+                      className="border-b border-gray-100 hover:bg-blue-50/40 transition-colors group"
+                    >
+                      <td className="py-4 px-6 font-medium text-gray-900">{project.name}</td>
+                      <td className="py-4 px-6">
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                          {project.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-gray-700">{project.dueDate}</td>
+                      <td className="py-4 px-6">
+                        <span className="inline-block px-2 py-1 rounded bg-yellow-50 text-yellow-600 font-bold">
+                          {project.priority}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteProject(project.id)}
+                          className="w-full"
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </main>
-
-      {/* Add Project Modal */}
       <AddProjectModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}

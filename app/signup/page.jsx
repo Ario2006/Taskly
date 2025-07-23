@@ -4,7 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,6 +17,9 @@ export default function SignupPage() {
     password: ""
   });
   const [isAnimating, setIsAnimating] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleNext = () => {
     setIsAnimating(true);
@@ -26,29 +31,26 @@ export default function SignupPage() {
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
+    setError("");
   };
 
-  const handleSubmit = () => {
-    // Store user data in localStorage (mock database)
-    const users = JSON.parse(localStorage.getItem('taskly_users') || '[]');
-    const newUser = {
-      id: Date.now().toString(),
-      name: formData.name,
-      email: formData.email.toLowerCase(),
-      password: formData.password // In real app, never store plain passwords!
-    };
-    users.push(newUser);
-    localStorage.setItem('taskly_users', JSON.stringify(users));
-    
-    // Set current user
-    localStorage.setItem('taskly_current_user', JSON.stringify({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email
-    }));
-    
-    // Redirect to dashboard
-    router.push('/dashboard');
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+    // Supabase signup
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: { name: formData.name }
+      }
+    });
+    setLoading(false);
+    if (signUpError) {
+      setError(signUpError.message);
+      return;
+    }
+    router.push("/dashboard");
   };
 
   return (
@@ -66,143 +68,76 @@ export default function SignupPage() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-md">
-            <div className={`transition-all duration-300 ${isAnimating ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
-              {/* Step 1: Name */}
-              {step === 1 && (
-                <div className="space-y-8">
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-semibold text-gray-800">Welcome to Taskly</h2>
-                    <p className="text-gray-600">Let's start with your name</p>
-                  </div>
-                  <div className="space-y-6">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full pb-2 text-lg border-b-2 border-gray-300 focus:border-blue-500 outline-none transition-colors bg-transparent"
-                        placeholder="Your name"
-                        autoFocus
-                      />
-                    </div>
-                    <button
-                      onClick={handleNext}
-                      disabled={!formData.name}
-                      className="flex items-center gap-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Email */}
-              {step === 2 && (
-                <div className="space-y-8">
-                  <div className="space-y-2">
-                    <p className="text-gray-600">
-                      Your name is <span className="text-black font-medium">{formData.name}</span>
-                    </p>
-                  </div>
-                  <div className="space-y-6">
-                    <div className="relative">
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="w-full pb-2 text-lg border-b-2 border-gray-300 focus:border-blue-500 outline-none transition-colors bg-transparent"
-                        placeholder="Email address"
-                        autoFocus
-                      />
-                    </div>
-                    <button
-                      onClick={handleNext}
-                      disabled={!formData.email}
-                      className="flex items-center gap-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Password */}
-              {step === 3 && (
-                <div className="space-y-8">
-                  <div className="space-y-2">
-                    <p className="text-gray-600">
-                      Your name is <span className="text-black font-medium">{formData.name}</span> and
-                      you would like to sign up with the
-                      email address <span className="text-black font-medium underline">{formData.email}</span>
-                    </p>
-                  </div>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <p className="text-gray-600 text-sm">
-                        Create a strong password with a mix of some letters, symbols and numbers
-                      </p>
-                      <div className="relative">
-                        <input
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
-                          className="w-full pb-2 text-lg border-b-2 border-gray-300 focus:border-blue-500 outline-none transition-colors bg-transparent"
-                          placeholder="••••••••••"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleNext}
-                      disabled={!formData.password}
-                      className="flex items-center gap-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Confirmation */}
-              {step === 4 && (
-                <div className="space-y-8">
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-semibold text-gray-800">Great, you are all set.</h2>
-                    <p className="text-gray-600">
-                      Welcome to Taskly, {formData.name}!
-                    </p>
-                  </div>
+            {/* Error notification */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+            {/* Form */}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleSubmit();
+              }}
+              className="space-y-6"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={e => handleInputChange("name", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={e => handleInputChange("email", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={formData.password}
+                    onChange={e => handleInputChange("password", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                    placeholder="Enter your password"
+                  />
                   <button
-                    onClick={handleSubmit}
-                    className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full font-medium transition-colors"
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    Create account
-                    <ChevronRight className="w-5 h-5" />
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-              )}
-            </div>
-
-            {/* Progress dots */}
-            <div className="flex gap-2 mt-12 justify-center">
-              {[1, 2, 3, 4].map((dot) => (
-                <div
-                  key={dot}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    dot <= step ? 'bg-gray-800 w-6' : 'bg-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Already have an account link */}
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{" "}
-                <Link href="/login" className="text-blue-500 hover:text-blue-600 font-medium">
-                  Sign in
-                </Link>
-              </p>
+              </div>
+              <button
+                type="submit"
+                className="w-full flex justify-center items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-60"
+                disabled={loading}
+              >
+                Sign Up
+                {loading && <ChevronRight className="animate-spin" />}
+              </button>
+            </form>
+            <div className="mt-4 text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link href="/login" className="text-blue-600 hover:underline">Log in</Link>
             </div>
           </div>
         </div>
