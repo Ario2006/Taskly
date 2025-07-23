@@ -36,24 +36,23 @@ export default function ProjectTable({ projects, onUpdate, onDelete, searchTerm 
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-gray-50 border-b border-gray-200">
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-x-auto">
+      <table className="w-full min-w-[900px]">
+        <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
           <tr>
-            <th className="text-left py-3 px-6 font-medium text-gray-700">Project Name</th>
-            <th className="text-center py-3 px-6 font-medium text-gray-700">Owner</th>
-            <th className="text-center py-3 px-6 font-medium text-gray-700">Status</th>
-            <th className="text-center py-3 px-6 font-medium text-gray-700">Timeline</th>
-            <th className="text-center py-3 px-6 font-medium text-gray-700">Due Date</th>
-            <th className="text-center py-3 px-6 font-medium text-gray-700">Priority</th>
-            <th className="w-16"></th>
+            <th className="text-left py-4 px-6 font-semibold text-gray-700 rounded-tl-2xl">Project Name</th>
+            <th className="text-center py-4 px-6 font-semibold text-gray-700">Owner</th>
+            <th className="text-center py-4 px-6 font-semibold text-gray-700">Status</th>
+            <th className="text-center py-4 px-6 font-semibold text-gray-700">Timeline</th>
+            <th className="text-center py-4 px-6 font-semibold text-gray-700">Due Date</th>
+            <th className="text-center py-4 px-6 font-semibold text-gray-700">Priority</th>
+            <th className="w-16 rounded-tr-2xl"></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="bg-gray-50/60">
           {sortedGroups.map((group) => {
             const isExpanded = expandedGroups[group] !== false;
             const groupProjects = groupedProjects[group];
-            
             return (
               <React.Fragment key={group}>
                 <tr>
@@ -65,12 +64,13 @@ export default function ProjectTable({ projects, onUpdate, onDelete, searchTerm 
                     />
                   </td>
                 </tr>
-                {isExpanded && groupProjects.map((project) => (
+                {isExpanded && groupProjects.map((project, idx) => (
                   <ProjectRow
                     key={project.id}
                     project={project}
                     onUpdate={onUpdate}
                     onDelete={onDelete}
+                    zebra={idx % 2 === 1}
                   />
                 ))}
               </React.Fragment>

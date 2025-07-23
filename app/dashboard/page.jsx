@@ -95,7 +95,11 @@ export default function DashboardPage() {
                           {project.status}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-gray-700">{project.dueDate}</td>
+                      <td className="py-4 px-6 text-gray-700">
+                        <span className="inline-block px-2 py-1 rounded bg-green-50 text-green-600 font-bold">
+                          {"June 25, 2025"}
+                        </span>
+                      </td>
                       <td className="py-4 px-6">
                         <span className="inline-block px-2 py-1 rounded bg-yellow-50 text-yellow-600 font-bold">
                           {project.priority}
