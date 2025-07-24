@@ -17,7 +17,7 @@ export default function ProjectRow({ project, onUpdate, onDelete, zebra }) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowMenu(false);
       }
-    };
+    }
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
