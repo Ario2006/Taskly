@@ -3,11 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-import ProjectTable from "./components/ProjectTable";
 import AddProjectModal from "./components/AddProjectModal";
 import { useProjects } from "@/hooks/useProjects";
-import { calculateProjectStats } from "@/lib/utils";
-import { Plus, Search, Filter } from 'lucide-react';
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";

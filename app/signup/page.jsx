@@ -16,18 +16,9 @@ export default function SignupPage() {
     email: "",
     password: ""
   });
-  const [isAnimating, setIsAnimating] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  const handleNext = () => {
-    setIsAnimating(true);
-    setTimeout(() => {
-      setStep(step + 1);
-      setIsAnimating(false);
-    }, 300);
-  };
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });

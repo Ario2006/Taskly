@@ -20,7 +20,7 @@ export default function AddProjectModal({ isOpen, onClose, onAdd, currentUser })
     onAdd({
       name: formData.name,
       status: formData.status,
-      duedate: formData.dueDate, // changed from dueDate to duedate
+      duedate: formData.dueDate,
       priority: formData.priority
     });
     onClose();
